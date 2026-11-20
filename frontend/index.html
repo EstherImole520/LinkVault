@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="LinkVault — save, organize, and quickly find the links that matter."
+    />
+    <title>LinkVault — Your bookmarks, organized</title>
+    <script>
+      // Apply the saved theme before first paint to avoid a flash.
+      (function () {
+        try {
+          var saved = localStorage.getItem("linkvault-theme");
+          var theme =
+            saved === "light" || saved === "dark"
+              ? saved
+              : window.matchMedia("(prefers-color-scheme: dark)").matches
+                ? "dark"
+                : "light";
+          document.documentElement.dataset.theme = theme;
+        } catch (error) {
+          document.documentElement.dataset.theme = "light";
+        }
+      })();
+    </script>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%234f46e5'/%3E%3Cpath d='M9 10h14M9 16h14M9 22h8' stroke='white' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Skip to bookmarks</a>
+
+    <div class="app-shell">
+      <div class="mobile-bar">
+        <button
+          id="menu-button"
+          class="icon-button"
+          type="button"
+          aria-label="Open navigation"
+          aria-expanded="false"
+          aria-controls="sidebar"
+        >
+          <svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22">
+            <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none" />
+          </svg>
+        </button>
+        <span class="brand brand--compact">
+          <span class="brand-mark" aria-hidden="true">LV</span>
+          <span class="brand-name">LinkVault</span>
+        </span>
+      </div>
+
+      <div id="sidebar-backdrop" class="sidebar-backdrop" hidden></div>
+
+      <aside id="sidebar" class="sidebar" aria-label="Sidebar">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">LV</span>
+          <span class="brand-name">LinkVault</span>
+        </div>
+
+        <nav aria-label="Views" class="nav">
+          <button
+            type="button"
+            class="nav-item is-active"
+            data-view="all"
+            aria-current="true"
+            data-testid="nav-all"
+          >
+            <span aria-hidden="true">◈</span>
+            <span>All bookmarks</span>
+            <span class="nav-count" id="nav-all-count" data-testid="nav-all-count">0</span>
+          </button>
+          <button type="button" class="nav-item" data-view="favorites" data-testid="nav-favorites">
+            <span aria-hidden="true">★</span>
+            <span>Favorites</span>
+            <span class="nav-count" id="nav-favorites-count" data-testid="nav-favorites-count">0</span>
+          </button>
+        </nav>
+
+        <section class="sidebar-section" aria-labelledby="categories-heading">
+          <div class="sidebar-heading-row">
+            <h2 id="categories-heading">Categories</h2>
+          </div>
+          <div id="category-list" class="category-list"></div>
+        </section>
+
+        <section class="overview" aria-labelledby="overview-heading">
+          <h2 id="overview-heading">Overview</h2>
+          <dl class="stats">
+            <div class="stat">
+              <dt>Bookmarks</dt>
+              <dd id="stats-total" data-testid="stats-total">0</dd>
+            </div>
+            <div class="stat">
+              <dt>Favorites</dt>
+              <dd id="stats-favorites" data-testid="stats-favorites">0</dd>
+            </div>
+            <div class="stat">
+              <dt>Categories</dt>
+              <dd id="stats-categories" data-testid="stats-categories">0</dd>
+            </div>
+          </dl>
+        </section>
+
+        <p class="sidebar-footnote">Stored locally in SQLite. No account, no tracking.</p>
+      </aside>
+
+      <main id="main-content" class="main" tabindex="-1">
+        <header class="page-header">
+          <div>
+            <p class="eyebrow">Bookmark dashboard</p>
+            <h1 id="page-title">All bookmarks</h1>
+            <p id="page-subtitle" class="subtitle">Every link worth keeping, in one place.</p>
+          </div>
+          <div class="header-actions">
+            <button
+              id="theme-toggle"
+              type="button"
+              class="button button--ghost"
+              aria-pressed="false"
+              data-testid="theme-toggle"
+            >
+              <span class="theme-icon" aria-hidden="true">◐</span>
+              <span id="theme-label">Dark mode</span>
+            </button>
+            <button
+              id="add-bookmark"
+              type="button"
+              class="button button--primary"
+              data-testid="add-bookmark"
+            >
+              <span aria-hidden="true">+</span>
+              <span>Add bookmark</span>
+            </button>
+          </div>
+        </header>
+
+        <form id="search-form" class="toolbar" role="search" aria-label="Search bookmarks">
+          <div class="field field--search">
+            <label class="sr-only" for="search">Search bookmarks</label>
+            <span class="search-icon" aria-hidden="true">⌕</span>
+            <input
+              id="search"
+              name="q"
+              type="search"
+              placeholder="Search title, URL, or description…"
+              autocomplete="off"
+              data-testid="search"
+            />
+          </div>
+          <div class="field field--sort">
+            <label class="sr-only" for="sort">Sort bookmarks</label>
+            <select id="sort" name="sort" data-testid="sort">
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+              <option value="alpha">Alphabetical (A–Z)</option>
+            </select>
+          </div>
+          <button id="clear-filters" type="button" class="button button--ghost" hidden>Clear filters</button>
+        </form>
+
+        <div class="result-bar">
+          <p id="result-summary" class="result-summary" aria-live="polite" data-testid="result-summary">Loading bookmarks…</p>
+          <p id="active-filter" class="filter-chip" hidden></p>
+        </div>
+
+        <div id="toast" class="toast" role="status" aria-live="polite" data-testid="toast"></div>
+
+        <section id="bookmark-region" class="bookmark-region" aria-label="Bookmarks" aria-busy="true">
+          <div id="bookmark-grid" class="bookmark-grid" data-testid="bookmark-grid"></div>
+        </section>
+      </main>
+    </div>
+
+    <dialog id="bookmark-dialog" class="dialog" aria-labelledby="dialog-title" data-testid="bookmark-dialog">
+      <form id="bookmark-form" class="dialog-form" novalidate>
+        <div class="dialog-head">
+          <div>
+            <h2 id="dialog-title">Add bookmark</h2>
+            <p id="dialog-subtitle" class="subtitle">Save a link and give it a home.</p>
+          </div>
+          <button id="dialog-close" type="button" class="icon-button" aria-label="Close dialog">✕</button>
+        </div>
+
+        <p id="form-error" class="form-error" role="alert" hidden></p>
+
+        <div class="field">
+          <label for="bookmark-title">Title</label>
+          <input
+            id="bookmark-title"
+            name="title"
+            type="text"
+            maxlength="200"
+            required
+            autocomplete="off"
+            aria-describedby="title-error"
+            data-testid="title-input"
+          />
+          <p id="title-error" class="field-error" hidden></p>
+        </div>
+
+        <div class="field">
+          <label for="bookmark-url">URL</label>
+          <input
+            id="bookmark-url"
+            name="url"
+            type="text"
+            inputmode="url"
+            maxlength="2048"
+            placeholder="https://example.com"
+            required
+            autocomplete="off"
+            aria-describedby="url-error url-hint"
+            data-testid="url-input"
+          />
+          <p id="url-hint" class="field-hint">Only http:// and https:// links are accepted.</p>
+          <p id="url-error" class="field-error" hidden></p>
+        </div>
+
+        <div class="field">
+          <label for="bookmark-description">Description <span class="optional">(optional)</span></label>
+          <textarea
+            id="bookmark-description"
+            name="description"
+            rows="3"
+            maxlength="1000"
+            aria-describedby="description-error"
+            data-testid="description-input"
+          ></textarea>
+          <p id="description-error" class="field-error" hidden></p>
+        </div>
+
+        <div class="field">
+          <label for="bookmark-category">Category</label>
+          <input
+            id="bookmark-category"
+            name="category"
+            type="text"
+            maxlength="60"
+            list="category-options"
+            placeholder="e.g. Documentation"
+            aria-describedby="category-error"
+            data-testid="category-input"
+          />
+          <datalist id="category-options"></datalist>
+          <p id="category-error" class="field-error" hidden></p>
+        </div>
+
+        <label class="checkbox">
+          <input id="bookmark-favorite" name="is_favorite" type="checkbox" data-testid="favorite-input" />
+          <span>Mark as favorite</span>
+        </label>
+
+        <div class="dialog-actions">
+          <button id="dialog-cancel" type="button" class="button button--ghost">Cancel</button>
+          <button id="dialog-save" type="submit" class="button button--primary" data-testid="save-bookmark">
+            Save bookmark
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
